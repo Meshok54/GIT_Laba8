@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Геоинформационные технологии — Тула</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  </head>
+  <body>
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h1>Гео-API Сервисы</h1>
+        <span style="font-size: 12px; opacity: 0.6">Вариант 16 - Тула</span>
+      </div>
+      <div class="sidebar-menu">
+        <button class="tab-btn active" data-tab="geocoding">
+          Прямой/обратный геокодинг
+        </button>
+        <button class="tab-btn" data-tab="tiling">
+          Расчет и загрузка тайлов
+        </button>
+        <button class="tab-btn" data-tab="geohash">Работа с Геохешем</button>
+        <button class="tab-btn" data-tab="routing">Построение маршрутов</button>
+        <button class="tab-btn" data-tab="isochrone">Расчет зон изохрон</button>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div id="geocoding" class="tab-content active">
+        <div class="workspace-grid">
+          <div class="controls-panel">
+            <div class="control-block">
+              <label>Прямой геокодинг</label>
+              <input
+                type="text"
+                id="addressInput"
+                value="Тула, проспект Ленина 2"
+              />
+              <button id="geocodeBtn">Найти координаты</button>
+            </div>
+            <div id="geocodeResult" class="result">Ожидание ввода...</div>
+
+            <div class="control-block">
+              <label>Обратный геокодинг</label>
+              <input type="text" id="latInput" value="54.193122" />
+              <input
+                type="text"
+                id="lngInput"
+                value="37.617348"
+                style="margin-top: 5px"
+              />
+              <button id="reverseBtn" style="margin-top: 8px">
+                Определить адрес
+              </button>
+            </div>
+            <div id="reverseResult" class="result">Ожидание ввода...</div>
+          </div>
+          <div class="map-panel"><div id="geocodeMap" class="map"></div></div>
+        </div>
+      </div>
+
+      <div id="tiling" class="tab-content">
+        <div class="workspace-grid">
+          <div class="controls-panel">
+            <div class="control-block">
+              <label>Масштаб карты (Zoom)</label>
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  margin: 10px 0;
+                "
+              >
+                <input
+                  type="range"
+                  id="zoomSlider"
+                  min="0"
+                  max="18"
+                  value="13"
+                  step="1"
+                  style="flex: 1"
+                />
+                <span id="zoomValue" style="font-weight: bold; min-width: 20px"
+                  >13</span
+                >
+              </div>
+              <button id="showTileInfo">Рассчитать текущий тайл</button>
+            </div>
+            <div id="tileInfo" class="result">
+              Нажмите кнопку для расчета Z, X, Y тайла центра Тулы.
+            </div>
+          </div>
+          <div class="map-panel"><div id="tileMap" class="map"></div></div>
+        </div>
+      </div>
+
+      <div id="geohash" class="tab-content">
+        <div class="workspace-grid">
+          <div class="controls-panel">
+            <div class="control-block">
+              <label>Координаты точки</label>
+              <input
+                type="text"
+                id="ghLat"
+                value="54.193122"
+                placeholder="Широта"
+              />
+              <input
+                type="text"
+                id="ghLng"
+                value="37.617348"
+                placeholder="Долгота"
+                style="margin-top: 5px"
+              />
+            </div>
+            <div class="control-block">
+              <label>Точность алгоритма (1-12)</label>
+              <input
+                type="number"
+                id="ghPrecision"
+                min="1"
+                max="12"
+                value="6"
+              />
+              <button id="calcGeohash" style="margin-top: 10px">
+                Рассчитать Geohash
+              </button>
+            </div>
+            <div id="geohashResult" class="result">
+              Результат хеширования территории...
+            </div>
+          </div>
+          <div class="map-panel"><div id="geohashMap" class="map"></div></div>
+        </div>
+      </div>
+
+      <div id="routing" class="tab-content">
+        <div class="workspace-grid">
+          <div class="controls-panel">
+            <div class="control-block">
+              <label>Точка отправления</label>
+              <input
+                type="text"
+                id="startAddr"
+                value="Тула, улица Советская 47"
+              />
+            </div>
+            <div class="control-block">
+              <label>Точка назначения</label>
+              <input
+                type="text"
+                id="endAddr"
+                value="Тула, Центральный парк культуры и отдыха им. П. П. Белоусова"
+              />
+              <button id="routeBtn" style="margin-top: 10px">
+                Построить оптимальный путь
+              </button>
+            </div>
+            <div id="routeResult" class="result">
+              Информация о дистанции и времени...
+            </div>
+          </div>
+          <div class="map-panel"><div id="routeMap" class="map"></div></div>
+        </div>
+      </div>
+
+      <div id="isochrone" class="tab-content">
+        <div class="workspace-grid">
+          <div class="controls-panel">
+            <div class="control-block">
+              <label>Центральная точка</label>
+              <input type="text" id="isoPoint" value="Тула, кремль" />
+            </div>
+            <div class="control-block">
+              <label>Способ передвижения</label>
+              <select id="isoMode">
+                <option value="walking">Пешком</option>
+                <option value="driving">На автомобиле</option>
+                <option value="bicycle">На велосипеде</option>
+              </select>
+            </div>
+            <div class="control-block">
+              <label>Лимит времени (минуты)</label>
+              <input type="number" id="isoTime" value="15" step="5" />
+              <button id="isoBtn" style="margin-top: 10px">
+                Сгенерировать изохрону
+              </button>
+            </div>
+            <div id="isoResult" class="result">
+              Параметры построенной зоны доступности...
+            </div>
+          </div>
+          <div class="map-panel"><div id="isoMap" class="map"></div></div>
+        </div>
+      </div>
+    </div>
+    <script src="scripts.js"></script>
+  </body>
+</html>
