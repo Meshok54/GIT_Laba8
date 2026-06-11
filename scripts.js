@@ -1,4 +1,4 @@
-let map1, map2, map3, map4, map5;
+let map1, map2, map3, map4, map5, map6;
 const TULA_COORDS = [54.193122, 37.617348];
 
 function initMap(containerId, center, zoom) {
@@ -18,6 +18,7 @@ window.addEventListener("load", () => {
   map3 = initMap("geohashMap", TULA_COORDS, 13);
   map4 = initMap("routeMap", TULA_COORDS, 14);
   map5 = initMap("isoMap", TULA_COORDS, 13);
+  map6 = initMap("deliveryMap", TULA_COORDS, 14);
 });
 
 // ========== 1. Геокодинг (Nominatim) ==========
@@ -217,7 +218,7 @@ document.getElementById("calcGeohash").onclick = () => {
   const bounds = getGeohashBounds(geohash);
   if (bounds)
     L.rectangle(bounds, {
-      color: "#ffb300",
+      color: "#af62d2",
       weight: 2,
       fillOpacity: 0.15,
     }).addTo(map3);
@@ -327,10 +328,10 @@ document.getElementById("isoBtn").onclick = async () => {
     });
     L.geoJSON(geojson, {
       style: {
-        color: "#1a237e",
+        color: "#8b45ac",
         weight: 2,
         fillOpacity: 0.3,
-        fillColor: "#ffb300",
+        fillColor: "#af62d2",
       },
     }).addTo(map5);
     L.marker([lat, lon]).addTo(map5).bindPopup(address).openPopup();
@@ -340,6 +341,79 @@ document.getElementById("isoBtn").onclick = async () => {
     resultDiv.innerHTML = `Зона построена!<br>Время: ${minutes} мин<br>Транспорт: ${rusMode}`;
   } catch (error) {
     resultDiv.innerHTML = `Ошибка: ${error.message}`;
+  }
+};
+
+// ========== 6. Индивидуальное Задание: Зона доставки курьера ==========
+document.getElementById("calcDeliveryBtn").onclick = async () => {
+  const address = document.getElementById("restaurantAddress").value.trim();
+  const minutes = parseInt(document.getElementById("deliveryTime").value);
+  const statusDiv = document.getElementById("deliveryStatus");
+  const geoJsonOutput = document.getElementById("geoJsonOutput");
+
+  if (!address) {
+    statusDiv.innerHTML =
+      '<span style="color: #ef4444;">Ошибка: введите адрес ресторана</span>';
+    return;
+  }
+
+  statusDiv.innerHTML = "Геокодирование адреса ресторана...";
+  geoJsonOutput.value = "";
+
+  try {
+
+    const { lat, lon } = await geocodeToCoord2gis(address);
+    statusDiv.innerHTML = `Ресторан найден: [${lat}, ${lon}]. Запрос изохроны пешего курьера...`;
+
+    const response = await fetch(
+      `https://routing.api.2gis.com/isochrone/2.0.0?key=${TWOGIS_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          start: { lat, lon },
+          durations: [minutes * 60],
+          transport: "walking",
+          reverse: false,
+        }),
+      },
+    );
+
+    const data = await response.json();
+    if (data.status !== "OK" || !data.isochrones?.length) {
+      throw new Error(
+        data.message || "Не удалось построить зону для этого адреса",
+      );
+    }
+
+    const geojson = wktToGeoJSON(data.isochrones[0].geometry);
+
+    geoJsonOutput.value = JSON.stringify(geojson, null, 4);
+
+    map6.eachLayer((layer) => {
+      if (layer instanceof L.GeoJSON || layer instanceof L.Marker)
+        map6.removeLayer(layer);
+    });
+
+    const deliveryLayer = L.geoJSON(geojson, {
+      style: {
+        color: "#8b45ac",
+        weight: 2,
+        fillOpacity: 0.25,
+        fillColor: "#af62d2",
+      },
+    }).addTo(map6);
+
+    L.marker([lat, lon])
+      .addTo(map6)
+      .bindPopup(`<b>Ресторан:</b><br>${address}`)
+      .openPopup();
+
+    map6.fitBounds(deliveryLayer.getBounds());
+    statusDiv.innerHTML = `Успешно! Построена зона доставки пешего курьера на <b>${minutes} мин.</b>`;
+  } catch (error) {
+    statusDiv.innerHTML = `<span style="color: #ef4444;"><b>Ошибка:</b> ${error.message}</span>`;
+    geoJsonOutput.value = "";
   }
 };
 
@@ -354,7 +428,7 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
       .forEach((t) => t.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById(btn.dataset.tab).classList.add("active");
-    [map1, map2, map3, map4, map5].forEach(
+    [map1, map2, map3, map4, map5, map6].forEach(
       (m) => m && setTimeout(() => m.invalidateSize(), 100),
     );
   });
